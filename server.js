@@ -395,7 +395,7 @@ app.get('/api/projection/:meter_id', requireAuth, (req, res) => {
   });
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 
 initDatabase().then(() => {
   app.listen(PORT, () => {
