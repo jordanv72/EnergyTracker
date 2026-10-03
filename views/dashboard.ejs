@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - Energy Tracker</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="dashboard">
+    <header>
+      <div class="container">
+        <h1>Energy Tracker Dashboard</h1>
+        <div class="user-info">
+          <span>Welcome, <%= username %>!</span>
+          <a href="/logout" class="btn btn-secondary">Logout</a>
+        </div>
+      </div>
+    </header>
+
+    <div class="container">
+      <!-- Meters Section -->
+      <div class="section">
+        <div class="section-header">
+          <h2>My Meters</h2>
+          <button class="btn btn-primary" id="add-meter-btn">+ Add Meter</button>
+        </div>
+
+        <div id="meters-list" class="meters-grid">
+          <% if (meters.length === 0) { %>
+            <div class="empty-state">
+              <p>No meters yet. Add your first meter to start tracking!</p>
+            </div>
+          <% } else { %>
+            <% meters.forEach(meter => { %>
+              <div class="meter-card" data-meter-id="<%= meter.id %>">
+                <div class="meter-header">
+                  <span class="badge badge-<%= meter.meter_type %>"><%= meter.meter_type %></span>
+                  <div class="meter-actions">
+                    <button class="btn-icon edit-meter-btn" data-id="<%= meter.id %>" title="Edit meter">✏️</button>
+                    <button class="btn-icon delete-meter-btn" data-id="<%= meter.id %>" title="Delete meter">×</button>
+                  </div>
+                </div>
+                <h3><%= meter.meter_name %></h3>
+                <% if (meter.meter_number) { %>
+                  <p class="meter-number">#<%= meter.meter_number %></p>
+                <% } %>
+                <div class="meter-stats">
+                  <div class="stat-item">
+                    <span class="stat-label">Last Reading:</span>
+                    <span class="stat-value"><%= meter.last_reading ? meter.last_reading + ' ' + meter.unit : 'No readings' %></span>
+                  </div>
+                  <% if (meter.last_reading_date) { %>
+                    <div class="stat-item">
+                      <span class="stat-label">Date:</span>
+                      <span class="stat-value"><%= new Date(meter.last_reading_date).toLocaleDateString() %></span>
+                    </div>
+                  <% } %>
+                  <div class="stat-item">
+                    <span class="stat-label">Total Readings:</span>
+                    <span class="stat-value"><%= meter.reading_count %></span>
+                  </div>
+                </div>
+                <button class="btn btn-primary btn-small view-projection-btn" data-meter-id="<%= meter.id %>">View Projection</button>
+              </div>
+            <% }); %>
+          <% } %>
+        </div>
+      </div>
+
+      <!-- Add Meter Modal -->
+      <div id="add-meter-modal" class="modal">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2 id="meter-modal-title">Add New Meter</h2>
+            <button class="close-modal">&times;</button>
+          </div>
+          <form id="meter-form">
+            <input type="hidden" id="edit_meter_id" name="edit_meter_id">
+
+            <div class="form-group" id="meter-type-group">
+              <label for="meter_type">Meter Type *</label>
+              <select id="meter_type" name="meter_type" required>
+                <option value="electricity">Electricity (kWh)</option>
+                <option value="gas">Gas (m³)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="meter_name">Meter Name *</label>
+              <input type="text" id="meter_name" name="meter_name" placeholder="e.g., Main Meter, Kitchen" required>
+            </div>
+
+            <div class="form-group">
+              <label for="meter_number">Meter Number (optional)</label>
+              <input type="text" id="meter_number" name="meter_number" placeholder="e.g., 123456789">
+            </div>
+
+            <div class="form-group" id="brennwert-group" style="display: none;">
+              <label for="brennwert">Brennwert (Calorific Value)</label>
+              <input type="number" id="brennwert" name="brennwert" step="0.001" placeholder="e.g., 11.398">
+              <small style="color: #666; font-size: 12px;">kWh/m³ - found on your gas invoice</small>
+            </div>
+
+            <div class="form-group" id="zustandszahl-group" style="display: none;">
+              <label for="zustandszahl">Zustandszahl (State Number)</label>
+              <input type="number" id="zustandszahl" name="zustandszahl" step="0.001" placeholder="e.g., 0.903">
+              <small style="color: #666; font-size: 12px;">Found on your gas invoice</small>
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="meter-submit-btn">Add Meter</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Projection Modal -->
+      <div id="projection-modal" class="modal">
+        <div class="modal-content modal-large">
+          <div class="modal-header">
+            <h2>Yearly Projection</h2>
+            <button class="close-modal">&times;</button>
+          </div>
+          <div id="projection-content">
+            <p>Loading...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Add Reading Section -->
+      <div class="section">
+        <h2>Add Reading</h2>
+        <% if (meters.length === 0) { %>
+          <p class="info-message">Please add a meter first before recording readings.</p>
+        <% } else { %>
+          <form id="reading-form">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="meter_id">Select Meter *</label>
+                <select id="meter_id" name="meter_id" required>
+                  <option value="">Choose a meter...</option>
+                  <% meters.forEach(meter => { %>
+                    <option value="<%= meter.id %>">
+                      <%= meter.meter_name %><% if (meter.meter_number) { %> (#<%= meter.meter_number %>)<% } %> - <%= meter.meter_type %>
+                    </option>
+                  <% }); %>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="reading_value">Reading Value *</label>
+                <input type="number" id="reading_value" name="reading_value" step="0.001" required>
+              </div>
+
+              <div class="form-group">
+                <label for="reading_date">Date *</label>
+                <input type="date" id="reading_date" name="reading_date" required>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="notes">Notes (optional)</label>
+              <input type="text" id="notes" name="notes" placeholder="Any additional notes...">
+            </div>
+
+            <button type="submit" class="btn btn-primary">Add Reading</button>
+          </form>
+        <% } %>
+      </div>
+
+      <!-- Readings History -->
+      <div class="section">
+        <h2>Recent Readings</h2>
+        <div class="filter-group">
+          <label>Filter by meter:</label>
+          <div class="filter-buttons">
+            <button class="btn btn-secondary filter-btn active" data-filter="all">All</button>
+            <% meters.forEach(meter => { %>
+              <button class="btn btn-secondary filter-btn" data-filter="<%= meter.id %>">
+                <%= meter.meter_name %><% if (meter.meter_number) { %> (#<%= meter.meter_number %>)<% } %>
+              </button>
+            <% }); %>
+          </div>
+        </div>
+
+        <div id="readings-table-container">
+          <table id="readings-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Meter</th>
+                <th>Type</th>
+                <th>Value</th>
+                <th>Notes</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="readings-tbody">
+              <% if (readings.length === 0) { %>
+                <tr>
+                  <td colspan="6" class="no-data">No readings yet. Add your first reading above!</td>
+                </tr>
+              <% } else { %>
+                <% readings.forEach(reading => { %>
+                  <tr data-meter-id="<%= reading.meter_id %>">
+                    <td><%= new Date(reading.reading_date).toLocaleDateString() %></td>
+                    <td><%= reading.meter_name %></td>
+                    <td><span class="badge badge-<%= reading.meter_type %>"><%= reading.meter_type %></span></td>
+                    <td><%= reading.reading_value %> <%= reading.unit %></td>
+                    <td><%= reading.notes || '-' %></td>
+                    <td>
+                      <button class="btn btn-danger btn-small delete-reading-btn" data-id="<%= reading.id %>">Delete</button>
+                    </td>
+                  </tr>
+                <% }); %>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Set today's date as default (if reading form exists)
+    const readingDateInput = document.getElementById('reading_date');
+    if (readingDateInput) {
+      readingDateInput.valueAsDate = new Date();
+    }
+
+    // Modal handling
+    const addMeterModal = document.getElementById('add-meter-modal');
+    const projectionModal = document.getElementById('projection-modal');
+    const addMeterBtn = document.getElementById('add-meter-btn');
+    const closeModalBtns = document.querySelectorAll('.close-modal');
+
+    addMeterBtn.addEventListener('click', () => {
+      // Reset form for adding new meter
+      document.getElementById('meter-form').reset();
+      document.getElementById('edit_meter_id').value = '';
+      document.getElementById('meter-modal-title').textContent = 'Add New Meter';
+      document.getElementById('meter-submit-btn').textContent = 'Add Meter';
+      document.getElementById('meter-type-group').style.display = 'block';
+      document.getElementById('brennwert-group').style.display = 'none';
+      document.getElementById('zustandszahl-group').style.display = 'none';
+      addMeterModal.style.display = 'flex';
+    });
+
+    closeModalBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        addMeterModal.style.display = 'none';
+        projectionModal.style.display = 'none';
+      });
+    });
+
+    window.addEventListener('click', (e) => {
+      if (e.target === addMeterModal) {
+        addMeterModal.style.display = 'none';
+      }
+      if (e.target === projectionModal) {
+        projectionModal.style.display = 'none';
+      }
+    });
+
+    // Add/Edit meter form submission
+    document.getElementById('meter-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      const meterId = document.getElementById('edit_meter_id').value;
+      const meterType = document.getElementById('meter_type').value;
+      const formData = {
+        meter_name: document.getElementById('meter_name').value,
+        meter_number: document.getElementById('meter_number').value
+      };
+
+      // Add meter_type only for new meters
+      if (!meterId) {
+        formData.meter_type = meterType;
+      }
+
+      // Add brennwert and zustandszahl for gas meters
+      if (meterType === 'gas') {
+        const brennwert = document.getElementById('brennwert').value;
+        const zustandszahl = document.getElementById('zustandszahl').value;
+
+        if (brennwert) formData.brennwert = parseFloat(brennwert);
+        if (zustandszahl) formData.zustandszahl = parseFloat(zustandszahl);
+      }
+
+      const url = meterId ? `/api/meters/${meterId}` : '/api/meters';
+      const method = meterId ? 'PUT' : 'POST';
+
+      fetch(url, {
+        method: method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          location.reload();
+        } else {
+          alert('Error: ' + data.error);
+        }
+      })
+      .catch(err => {
+        console.error('Error:', err);
+        alert(meterId ? 'Error updating meter' : 'Error adding meter');
+      });
+    });
+
+    // Add reading form submission
+    const readingForm = document.getElementById('reading-form');
+    if (readingForm) {
+      readingForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const formData = {
+          meter_id: parseInt(document.getElementById('meter_id').value),
+          reading_value: parseFloat(document.getElementById('reading_value').value),
+          reading_date: document.getElementById('reading_date').value,
+          notes: document.getElementById('notes').value
+        };
+
+        fetch('/api/readings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData)
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            location.reload();
+          } else {
+            alert('Error: ' + data.error);
+          }
+        })
+        .catch(err => {
+          console.error('Error:', err);
+          alert('Error adding reading');
+        });
+      });
+    }
+
+    // Show/hide brennwert and zustandszahl fields based on meter type
+    document.getElementById('meter_type').addEventListener('change', function() {
+      const brennwertGroup = document.getElementById('brennwert-group');
+      const zustandszahlGroup = document.getElementById('zustandszahl-group');
+
+      if (this.value === 'gas') {
+        brennwertGroup.style.display = 'block';
+        zustandszahlGroup.style.display = 'block';
+      } else {
+        brennwertGroup.style.display = 'none';
+        zustandszahlGroup.style.display = 'none';
+      }
+    });
+
+    // Delete meter
+    document.addEventListener('click', function(e) {
+      if (e.target.classList.contains('delete-meter-btn')) {
+        if (confirm('Are you sure? This will delete the meter and all its readings!')) {
+          const id = e.target.dataset.id;
+          fetch(`/api/meters/${id}`, { method: 'DELETE' })
+            .then(res => res.json())
+            .then(data => {
+              if (data.success) {
+                location.reload();
+              } else {
+                alert('Error: ' + data.error);
+              }
+            })
+            .catch(err => {
+              console.error('Error:', err);
+              alert('Error deleting meter');
+            });
+        }
+      }
+
+      // Edit meter
+      if (e.target.classList.contains('edit-meter-btn')) {
+        const meterId = e.target.dataset.id;
+
+        // Fetch meter data
+        fetch(`/api/meters`)
+          .then(res => res.json())
+          .then(meters => {
+            const meter = meters.find(m => m.id == meterId);
+            if (meter) {
+              // Populate form
+              document.getElementById('edit_meter_id').value = meter.id;
+              document.getElementById('meter_type').value = meter.meter_type;
+              document.getElementById('meter_name').value = meter.meter_name;
+              document.getElementById('meter_number').value = meter.meter_number || '';
+
+              // Show/hide gas fields
+              const isGas = meter.meter_type === 'gas';
+              document.getElementById('brennwert-group').style.display = isGas ? 'block' : 'none';
+              document.getElementById('zustandszahl-group').style.display = isGas ? 'block' : 'none';
+
+              if (isGas) {
+                document.getElementById('brennwert').value = meter.brennwert || '';
+                document.getElementById('zustandszahl').value = meter.zustandszahl || '';
+              }
+
+              // Update modal
+              document.getElementById('meter-modal-title').textContent = 'Edit Meter';
+              document.getElementById('meter-submit-btn').textContent = 'Update Meter';
+              document.getElementById('meter-type-group').style.display = 'none'; // Can't change type when editing
+
+              addMeterModal.style.display = 'flex';
+            }
+          })
+          .catch(err => {
+            console.error('Error:', err);
+            alert('Error loading meter data');
+          });
+      }
+    });
+
+    // Delete reading
+    document.addEventListener('click', function(e) {
+      if (e.target.classList.contains('delete-reading-btn')) {
+        if (confirm('Are you sure you want to delete this reading?')) {
+          const id = e.target.dataset.id;
+          fetch(`/api/readings/${id}`, { method: 'DELETE' })
+            .then(res => res.json())
+            .then(data => {
+              if (data.success) {
+                location.reload();
+              } else {
+                alert('Error: ' + data.error);
+              }
+            })
+            .catch(err => {
+              console.error('Error:', err);
+              alert('Error deleting reading');
+            });
+        }
+      }
+    });
+
+    // View projection
+    document.addEventListener('click', function(e) {
+      if (e.target.classList.contains('view-projection-btn')) {
+        const meterId = e.target.dataset.meterId;
+        const projectionContent = document.getElementById('projection-content');
+        projectionContent.innerHTML = '<p>Loading...</p>';
+        projectionModal.style.display = 'flex';
+
+        fetch(`/api/projection/${meterId}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              const isGas = data.meter_type === 'gas';
+              const unit = data.unit;
+              const hasConversion = isGas && data.consumptionKwh;
+
+              projectionContent.innerHTML = `
+                <div class="projection-header">
+                  <h3>${data.meter_name}</h3>
+                  <span class="badge badge-${data.meter_type}">${data.meter_type}</span>
+                </div>
+                <div class="projection-stats">
+                  <div class="stat">
+                    <div class="stat-label">Consumption (${data.currentYear})</div>
+                    <div class="stat-value">${data.consumption.toFixed(3)} ${unit}</div>
+                    ${hasConversion ? `<div class="stat-sublabel">${data.consumptionKwh} kWh</div>` : ''}
+                    <div class="stat-sublabel">Based on ${data.readingCount} readings</div>
+                  </div>
+                  <div class="stat">
+                    <div class="stat-label">Daily Average</div>
+                    <div class="stat-value">${data.dailyAverage} ${unit}/day</div>
+                    ${hasConversion ? `<div class="stat-sublabel">${data.dailyAverageKwh} kWh/day</div>` : ''}
+                  </div>
+                  <div class="stat highlight">
+                    <div class="stat-label">Projected Yearly Total</div>
+                    <div class="stat-value">${data.projectedYearlyConsumption} ${unit}</div>
+                    ${hasConversion ? `<div class="stat-sublabel">${data.projectedYearlyKwh} kWh</div>` : ''}
+                  </div>
+                  <div class="stat">
+                    <div class="stat-label">Projected End Value</div>
+                    <div class="stat-value">${data.projectedEndValue} ${unit}</div>
+                  </div>
+                </div>
+                ${hasConversion ? `
+                  <div class="conversion-info">
+                    <strong>Conversion Formula:</strong> kWh = m³ × Brennwert × Zustandszahl<br>
+                    Brennwert: ${data.brennwert} kWh/m³ | Zustandszahl: ${data.zustandszahl} | Factor: ${data.conversion_factor}
+                  </div>
+                ` : ''}
+                ${isGas && !hasConversion ? `
+                  <div class="conversion-info" style="background: #fff3cd; border-color: #ffc107; color: #856404;">
+                    <strong>Note:</strong> Add Brennwert and Zustandszahl to your meter to see kWh conversion (found on your gas invoice)
+                  </div>
+                ` : ''}
+                <div class="projection-details">
+                  <p><strong>Period:</strong> ${new Date(data.firstReading.date).toLocaleDateString()} to ${new Date(data.lastReading.date).toLocaleDateString()} (${data.daysPassed} days)</p>
+                  <p><strong>Meter readings:</strong> ${data.firstReading.value} → ${data.lastReading.value} = ${data.consumption.toFixed(3)} ${unit}</p>
+                </div>
+              `;
+            } else {
+              projectionContent.innerHTML = `<p class="info-message">${data.message}</p>`;
+            }
+          })
+          .catch(err => {
+            console.error('Error loading projection:', err);
+            projectionContent.innerHTML = '<p class="error-message">Error loading projection</p>';
+          });
+      }
+    });
+
+    // Filter readings
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+
+        const filter = this.dataset.filter;
+        const rows = document.querySelectorAll('#readings-tbody tr');
+
+        rows.forEach(row => {
+          if (filter === 'all' || row.dataset.meterId === filter) {
+            row.style.display = '';
+          } else {
+            row.style.display = 'none';
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>
