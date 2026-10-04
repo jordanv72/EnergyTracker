@@ -13,6 +13,9 @@
         <h1>Energy Tracker Dashboard</h1>
         <div class="user-info">
           <span>Welcome, <%= username %>!</span>
+          <% if (isAdmin) { %>
+            <a href="/admin" class="btn btn-secondary">Admin Panel</a>
+          <% } %>
           <a href="/logout" class="btn btn-secondary">Logout</a>
         </div>
       </div>

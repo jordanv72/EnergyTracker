@@ -549,6 +549,16 @@ tr:hover {
   color: white;
 }
 
+.badge-admin {
+  background-color: #dc3545;
+  color: white;
+}
+
+.badge-user {
+  background-color: #6c757d;
+  color: white;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .meters-grid {

@@ -78,6 +78,15 @@ function requireAuth(req, res, next) {
   }
 }
 
+// Admin middleware
+function requireAdmin(req, res, next) {
+  if (req.session.userId && req.session.isAdmin) {
+    next();
+  } else {
+    res.status(403).send('Access denied. Admin privileges required.');
+  }
+}
+
 // Routes
 app.get('/', (req, res) => {
   if (req.session.userId) {
@@ -98,6 +107,7 @@ app.post('/login', (req, res) => {
   if (user && bcrypt.compareSync(password, user.password)) {
     req.session.userId = user.id;
     req.session.username = user.username;
+    req.session.isAdmin = user.is_admin === 1;
     res.redirect('/dashboard');
   } else {
     res.render('login', { error: 'Invalid username or password' });
@@ -150,6 +160,7 @@ app.get('/dashboard', requireAuth, (req, res) => {
 
   res.render('dashboard', {
     username: req.session.username,
+    isAdmin: req.session.isAdmin || false,
     meters,
     readings
   });
@@ -393,6 +404,58 @@ app.get('/api/projection/:meter_id', requireAuth, (req, res) => {
     projectedEndValue: projectedEndValue.toFixed(2),
     readingCount: readings.length
   });
+});
+
+// Admin routes
+app.get('/admin', requireAdmin, (req, res) => {
+  const users = dbAll('SELECT id, username, email, is_admin, created_at FROM users ORDER BY created_at DESC');
+  res.render('admin', {
+    username: req.session.username,
+    isAdmin: req.session.isAdmin,
+    users
+  });
+});
+
+app.post('/admin/users', requireAdmin, (req, res) => {
+  const { username, password, email, is_admin } = req.body;
+  const hashedPassword = bcrypt.hashSync(password, 10);
+
+  try {
+    dbRun('INSERT INTO users (username, password, email, is_admin) VALUES (?, ?, ?, ?)',
+      [username, hashedPassword, email || '', is_admin ? 1 : 0]);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+});
+
+app.delete('/admin/users/:id', requireAdmin, (req, res) => {
+  try {
+    // Prevent deleting yourself
+    if (parseInt(req.params.id) === req.session.userId) {
+      return res.status(400).json({ success: false, error: 'Cannot delete your own account' });
+    }
+
+    dbRun('DELETE FROM users WHERE id = ?', [req.params.id]);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+});
+
+app.put('/admin/users/:id/toggle-admin', requireAdmin, (req, res) => {
+  try {
+    const user = dbGet('SELECT is_admin FROM users WHERE id = ?', [req.params.id]);
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    const newAdminStatus = user.is_admin === 1 ? 0 : 1;
+    dbRun('UPDATE users SET is_admin = ? WHERE id = ?', [newAdminStatus, req.params.id]);
+    res.json({ success: true, is_admin: newAdminStatus });
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
+  }
 });
 
 const PORT = process.env.PORT || 3001;

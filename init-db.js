@@ -23,6 +23,7 @@ initSQL().then(SQL => {
       username TEXT UNIQUE NOT NULL,
       password TEXT NOT NULL,
       email TEXT,
+      is_admin INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
@@ -62,11 +63,11 @@ initSQL().then(SQL => {
   const hashedPassword = bcrypt.hashSync('admin123', 10);
 
   try {
-    db.run('INSERT OR IGNORE INTO users (username, password, email) VALUES (?, ?, ?)',
-      ['admin', hashedPassword, 'admin@example.com']);
+    db.run('INSERT OR IGNORE INTO users (username, password, email, is_admin) VALUES (?, ?, ?, ?)',
+      ['admin', hashedPassword, 'admin@example.com', 1]);
 
     console.log('Database initialized successfully!');
-    console.log('Default user created: username=admin, password=admin123');
+    console.log('Default admin user created: username=admin, password=admin123');
   } catch (error) {
     console.error('Error creating default user:', error.message);
   }

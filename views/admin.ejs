@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel - Energy Tracker</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="dashboard">
+    <header>
+      <div class="container">
+        <h1>Admin Panel</h1>
+        <div class="user-info">
+          <span>Admin: <%= username %></span>
+          <a href="/dashboard" class="btn btn-secondary">Dashboard</a>
+          <a href="/logout" class="btn btn-secondary">Logout</a>
+        </div>
+      </div>
+    </header>
+
+    <div class="container">
+      <div class="section">
+        <div class="section-header">
+          <h2>User Management</h2>
+          <button class="btn btn-primary" id="add-user-btn">+ Add User</button>
+        </div>
+
+        <table id="users-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Username</th>
+              <th>Email</th>
+              <th>Admin</th>
+              <th>Created</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% users.forEach(user => { %>
+              <tr>
+                <td><%= user.id %></td>
+                <td><strong><%= user.username %></strong></td>
+                <td><%= user.email || '-' %></td>
+                <td>
+                  <% if (user.is_admin === 1) { %>
+                    <span class="badge badge-admin">Admin</span>
+                  <% } else { %>
+                    <span class="badge badge-user">User</span>
+                  <% } %>
+                </td>
+                <td><%= new Date(user.created_at).toLocaleDateString() %></td>
+                <td>
+                  <button class="btn btn-secondary btn-small toggle-admin-btn" data-id="<%= user.id %>">
+                    Toggle Admin
+                  </button>
+                  <button class="btn btn-danger btn-small delete-user-btn" data-id="<%= user.id %>" data-username="<%= user.username %>">
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add User Modal -->
+  <div id="add-user-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Add New User</h2>
+        <button class="close-modal">&times;</button>
+      </div>
+      <form id="user-form">
+        <div class="form-group">
+          <label for="username">Username *</label>
+          <input type="text" id="username" name="username" required>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password *</label>
+          <input type="password" id="password" name="password" required minlength="6">
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email">
+        </div>
+
+        <div class="form-group">
+          <label>
+            <input type="checkbox" id="is_admin" name="is_admin">
+            Make this user an administrator
+          </label>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Create User</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const addUserModal = document.getElementById('add-user-modal');
+    const addUserBtn = document.getElementById('add-user-btn');
+    const closeModalBtn = document.querySelector('.close-modal');
+
+    addUserBtn.addEventListener('click', () => {
+      document.getElementById('user-form').reset();
+      addUserModal.style.display = 'flex';
+    });
+
+    closeModalBtn.addEventListener('click', () => {
+      addUserModal.style.display = 'none';
+    });
+
+    window.addEventListener('click', (e) => {
+      if (e.target === addUserModal) {
+        addUserModal.style.display = 'none';
+      }
+    });
+
+    // Add user form submission
+    document.getElementById('user-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      const formData = {
+        username: document.getElementById('username').value,
+        password: document.getElementById('password').value,
+        email: document.getElementById('email').value,
+        is_admin: document.getElementById('is_admin').checked
+      };
+
+      fetch('/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          location.reload();
+        } else {
+          alert('Error: ' + data.error);
+        }
+      })
+      .catch(err => {
+        console.error('Error:', err);
+        alert('Error creating user');
+      });
+    });
+
+    // Delete user
+    document.addEventListener('click', function(e) {
+      if (e.target.classList.contains('delete-user-btn')) {
+        const id = e.target.dataset.id;
+        const username = e.target.dataset.username;
+
+        if (confirm(`Are you sure you want to delete user '${username}'?\n\nThis will delete all their meters and readings!`)) {
+          fetch(`/admin/users/${id}`, { method: 'DELETE' })
+            .then(res => res.json())
+            .then(data => {
+              if (data.success) {
+                location.reload();
+              } else {
+                alert('Error: ' + data.error);
+              }
+            })
+            .catch(err => {
+              console.error('Error:', err);
+              alert('Error deleting user');
+            });
+        }
+      }
+    });
+
+    // Toggle admin status
+    document.addEventListener('click', function(e) {
+      if (e.target.classList.contains('toggle-admin-btn')) {
+        const id = e.target.dataset.id;
+
+        fetch(`/admin/users/${id}/toggle-admin`, { method: 'PUT' })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              location.reload();
+            } else {
+              alert('Error: ' + data.error);
+            }
+          })
+          .catch(err => {
+            console.error('Error:', err);
+            alert('Error updating admin status');
+          });
+      }
+    });
+  </script>
+</body>
+</html>
