@@ -137,26 +137,24 @@ app.get('/logout', (req, res) => {
 });
 
 app.get('/dashboard', requireAuth, (req, res) => {
-  // Get user's meters with latest reading
+  // Get all meters with latest reading (shared across all users)
   const meters = dbAll(`
     SELECT m.*,
            (SELECT reading_value FROM meter_readings WHERE meter_id = m.id ORDER BY reading_date DESC LIMIT 1) as last_reading,
            (SELECT reading_date FROM meter_readings WHERE meter_id = m.id ORDER BY reading_date DESC LIMIT 1) as last_reading_date,
            (SELECT COUNT(*) FROM meter_readings WHERE meter_id = m.id) as reading_count
     FROM meters m
-    WHERE m.user_id = ?
     ORDER BY m.created_at DESC
-  `, [req.session.userId]);
+  `);
 
-  // Get recent readings with meter info
+  // Get all readings with meter info (shared across all users)
   const readings = dbAll(`
     SELECT r.*, m.meter_name, m.meter_type, m.unit
     FROM meter_readings r
     JOIN meters m ON r.meter_id = m.id
-    WHERE m.user_id = ?
     ORDER BY r.reading_date DESC
     LIMIT 50
-  `, [req.session.userId]);
+  `);
 
   res.render('dashboard', {
     username: req.session.username,
@@ -168,7 +166,7 @@ app.get('/dashboard', requireAuth, (req, res) => {
 
 // Meter management routes
 app.get('/api/meters', requireAuth, (req, res) => {
-  const meters = dbAll('SELECT * FROM meters WHERE user_id = ? ORDER BY created_at DESC', [req.session.userId]);
+  const meters = dbAll('SELECT * FROM meters ORDER BY created_at DESC');
   res.json(meters);
 });
 
@@ -178,10 +176,9 @@ app.post('/api/meters', requireAuth, (req, res) => {
 
   try {
     dbRun(`
-      INSERT INTO meters (user_id, meter_type, meter_name, meter_number, unit, brennwert, zustandszahl)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO meters (meter_type, meter_name, meter_number, unit, brennwert, zustandszahl)
+      VALUES (?, ?, ?, ?, ?, ?)
     `, [
-      req.session.userId,
       meter_type,
       meter_name,
       meter_number || '',
@@ -199,9 +196,8 @@ app.put('/api/meters/:id', requireAuth, (req, res) => {
   const { meter_name, meter_number, brennwert, zustandszahl } = req.body;
 
   try {
-    // Verify meter belongs to user
-    const meter = dbGet('SELECT * FROM meters WHERE id = ? AND user_id = ?',
-      [req.params.id, req.session.userId]);
+    // Verify meter exists
+    const meter = dbGet('SELECT * FROM meters WHERE id = ?', [req.params.id]);
 
     if (!meter) {
       return res.status(404).json({ success: false, error: 'Meter not found' });
@@ -210,14 +206,13 @@ app.put('/api/meters/:id', requireAuth, (req, res) => {
     dbRun(`
       UPDATE meters
       SET meter_name = ?, meter_number = ?, brennwert = ?, zustandszahl = ?
-      WHERE id = ? AND user_id = ?
+      WHERE id = ?
     `, [
       meter_name,
       meter_number || '',
       brennwert || null,
       zustandszahl || null,
-      req.params.id,
-      req.session.userId
+      req.params.id
     ]);
 
     res.json({ success: true });
@@ -228,17 +223,15 @@ app.put('/api/meters/:id', requireAuth, (req, res) => {
 
 app.delete('/api/meters/:id', requireAuth, (req, res) => {
   try {
-    // Check if meter belongs to user
-    const meter = dbGet('SELECT * FROM meters WHERE id = ? AND user_id = ?',
-      [req.params.id, req.session.userId]);
+    // Check if meter exists
+    const meter = dbGet('SELECT * FROM meters WHERE id = ?', [req.params.id]);
 
     if (!meter) {
       return res.status(404).json({ success: false, error: 'Meter not found' });
     }
 
     // Delete meter (readings will be cascade deleted)
-    dbRun('DELETE FROM meters WHERE id = ? AND user_id = ?',
-      [req.params.id, req.session.userId]);
+    dbRun('DELETE FROM meters WHERE id = ?', [req.params.id]);
 
     res.json({ success: true });
   } catch (error) {
@@ -251,9 +244,8 @@ app.post('/api/readings', requireAuth, (req, res) => {
   const { meter_id, reading_value, reading_date, notes } = req.body;
 
   try {
-    // Verify meter belongs to user
-    const meter = dbGet('SELECT * FROM meters WHERE id = ? AND user_id = ?',
-      [meter_id, req.session.userId]);
+    // Verify meter exists
+    const meter = dbGet('SELECT * FROM meters WHERE id = ?', [meter_id]);
 
     if (!meter) {
       return res.status(400).json({ success: false, error: 'Invalid meter' });
@@ -313,9 +305,8 @@ app.get('/api/projection/:meter_id', requireAuth, (req, res) => {
   const { meter_id } = req.params;
   const currentYear = new Date().getFullYear();
 
-  // Verify meter belongs to user
-  const meter = dbGet('SELECT * FROM meters WHERE id = ? AND user_id = ?',
-    [meter_id, req.session.userId]);
+  // Verify meter exists
+  const meter = dbGet('SELECT * FROM meters WHERE id = ?', [meter_id]);
 
   if (!meter) {
     return res.status(404).json({ success: false, error: 'Meter not found' });

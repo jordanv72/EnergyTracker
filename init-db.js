@@ -31,15 +31,13 @@ initSQL().then(SQL => {
   db.run(`
     CREATE TABLE IF NOT EXISTS meters (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL,
       meter_type TEXT NOT NULL,
       meter_name TEXT NOT NULL,
       meter_number TEXT,
       unit TEXT NOT NULL,
       brennwert REAL DEFAULT NULL,
       zustandszahl REAL DEFAULT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
 
@@ -55,7 +53,6 @@ initSQL().then(SQL => {
     )
   `);
 
-  db.run(`CREATE INDEX IF NOT EXISTS idx_meters_user ON meters(user_id)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_readings_meter ON meter_readings(meter_id)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_readings_date ON meter_readings(reading_date)`);
 
