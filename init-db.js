@@ -38,6 +38,7 @@ initSQL().then(SQL => {
       brennwert REAL DEFAULT NULL,
       zustandszahl REAL DEFAULT NULL,
       price_per_unit REAL DEFAULT NULL,
+      base_price_per_year REAL DEFAULT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
