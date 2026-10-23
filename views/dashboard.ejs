@@ -114,7 +114,7 @@
             <div class="form-group">
               <label for="price_per_unit">Price per Unit (€) (optional)</label>
               <input type="number" id="price_per_unit" name="price_per_unit" step="0.0001" placeholder="e.g., 0.35">
-              <small style="color: #666; font-size: 12px;">Cost per kWh or m³</small>
+              <small style="color: #666; font-size: 12px;" id="price-hint">Cost per kWh</small>
             </div>
 
             <button type="submit" class="btn btn-primary" id="meter-submit-btn">Add Meter</button>
@@ -360,13 +360,16 @@
     document.getElementById('meter_type').addEventListener('change', function() {
       const brennwertGroup = document.getElementById('brennwert-group');
       const zustandszahlGroup = document.getElementById('zustandszahl-group');
+      const priceHint = document.getElementById('price-hint');
 
       if (this.value === 'gas') {
         brennwertGroup.style.display = 'block';
         zustandszahlGroup.style.display = 'block';
+        priceHint.textContent = 'Cost per kWh (from your invoice)';
       } else {
         brennwertGroup.style.display = 'none';
         zustandszahlGroup.style.display = 'none';
+        priceHint.textContent = 'Cost per kWh';
       }
     });
 
