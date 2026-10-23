@@ -111,6 +111,12 @@
               <small style="color: #666; font-size: 12px;">Found on your gas invoice</small>
             </div>
 
+            <div class="form-group">
+              <label for="price_per_unit">Price per Unit (€) (optional)</label>
+              <input type="number" id="price_per_unit" name="price_per_unit" step="0.0001" placeholder="e.g., 0.35">
+              <small style="color: #666; font-size: 12px;">Cost per kWh or m³</small>
+            </div>
+
             <button type="submit" class="btn btn-primary" id="meter-submit-btn">Add Meter</button>
           </form>
         </div>
@@ -289,6 +295,12 @@
         if (zustandszahl) formData.zustandszahl = parseFloat(zustandszahl);
       }
 
+      // Add price per unit if provided
+      const pricePerUnit = document.getElementById('price_per_unit').value;
+      if (pricePerUnit) {
+        formData.price_per_unit = parseFloat(pricePerUnit);
+      }
+
       const url = meterId ? `/api/meters/${meterId}` : '/api/meters';
       const method = meterId ? 'PUT' : 'POST';
 
@@ -405,6 +417,9 @@
                 document.getElementById('zustandszahl').value = meter.zustandszahl || '';
               }
 
+              // Populate price per unit
+              document.getElementById('price_per_unit').value = meter.price_per_unit || '';
+
               // Update modal
               document.getElementById('meter-modal-title').textContent = 'Edit Meter';
               document.getElementById('meter-submit-btn').textContent = 'Update Meter';
@@ -468,6 +483,7 @@
                     <div class="stat-label">Consumption (${data.currentYear})</div>
                     <div class="stat-value">${data.consumption.toFixed(3)} ${unit}</div>
                     ${hasConversion ? `<div class="stat-sublabel">${data.consumptionKwh} kWh</div>` : ''}
+                    ${data.consumptionCost ? `<div class="stat-sublabel">€${data.consumptionCost}</div>` : ''}
                     <div class="stat-sublabel">Based on ${data.readingCount} readings</div>
                   </div>
                   <div class="stat">
@@ -479,12 +495,18 @@
                     <div class="stat-label">Projected Yearly Total</div>
                     <div class="stat-value">${data.projectedYearlyConsumption} ${unit}</div>
                     ${hasConversion ? `<div class="stat-sublabel">${data.projectedYearlyKwh} kWh</div>` : ''}
+                    ${data.projectedYearlyCost ? `<div class="stat-sublabel" style="font-weight: bold; color: #667eea;">€${data.projectedYearlyCost}</div>` : ''}
                   </div>
                   <div class="stat">
                     <div class="stat-label">Projected End Value</div>
                     <div class="stat-value">${data.projectedEndValue} ${unit}</div>
                   </div>
                 </div>
+                ${data.price_per_unit ? `
+                  <div class="conversion-info">
+                    <strong>Price:</strong> €${data.price_per_unit} per ${hasConversion ? 'kWh' : unit}
+                  </div>
+                ` : ''}
                 ${hasConversion ? `
                   <div class="conversion-info">
                     <strong>Conversion Formula:</strong> kWh = m³ × Brennwert × Zustandszahl<br>
