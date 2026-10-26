@@ -220,12 +220,6 @@ app.put('/api/meters/:id', requireAuth, (req, res) => {
       previous_year_value || null,
       req.params.id
     ]);
-      brennwert || null,
-      zustandszahl || null,
-      price_per_unit || null,
-      base_price_per_year || null,
-      req.params.id
-    ]);
 
     res.json({ success: true });
   } catch (error) {
@@ -488,8 +482,9 @@ app.put('/admin/users/:id/toggle-admin', requireAdmin, (req, res) => {
 const PORT = process.env.PORT || 3001;
 
 initDatabase().then(() => {
-  app.listen(PORT, () => {
-    console.log(`Energy Tracker app running on http://localhost:${PORT}`);
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Energy Tracker app running on http://0.0.0.0:${PORT}`);
+    console.log(`Access from network: http://192.168.100.150:${PORT}`);
   });
 }).catch(err => {
   console.error('Failed to initialize database:', err.message);
