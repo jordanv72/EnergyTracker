@@ -171,12 +171,12 @@ app.get('/api/meters', requireAuth, (req, res) => {
 });
 
 app.post('/api/meters', requireAuth, (req, res) => {
-  const { meter_type, meter_name, meter_number, brennwert, zustandszahl, price_per_unit, base_price_per_year, previous_year_value } = req.body;
+  const { meter_type, meter_name, meter_number, brennwert, zustandszahl, price_per_unit, base_price_per_year, previous_year_consumption } = req.body;
   const unit = meter_type === 'electricity' ? 'kWh' : 'm³';
 
   try {
     dbRun(`
-      INSERT INTO meters (meter_type, meter_name, meter_number, unit, brennwert, zustandszahl, price_per_unit, base_price_per_year, previous_year_value)
+      INSERT INTO meters (meter_type, meter_name, meter_number, unit, brennwert, zustandszahl, price_per_unit, base_price_per_year, previous_year_consumption)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       meter_type,
@@ -187,7 +187,7 @@ app.post('/api/meters', requireAuth, (req, res) => {
       zustandszahl || null,
       price_per_unit || null,
       base_price_per_year || null,
-      previous_year_value || null
+      previous_year_consumption || null
     ]);
     res.json({ success: true });
   } catch (error) {
@@ -196,7 +196,7 @@ app.post('/api/meters', requireAuth, (req, res) => {
 });
 
 app.put('/api/meters/:id', requireAuth, (req, res) => {
-  const { meter_name, meter_number, brennwert, zustandszahl, price_per_unit, base_price_per_year, previous_year_value } = req.body;
+  const { meter_name, meter_number, brennwert, zustandszahl, price_per_unit, base_price_per_year, previous_year_consumption } = req.body;
 
   try {
     // Verify meter exists
@@ -208,7 +208,7 @@ app.put('/api/meters/:id', requireAuth, (req, res) => {
 
     dbRun(`
       UPDATE meters
-      SET meter_name = ?, meter_number = ?, brennwert = ?, zustandszahl = ?, price_per_unit = ?, base_price_per_year = ?, previous_year_value = ?
+      SET meter_name = ?, meter_number = ?, brennwert = ?, zustandszahl = ?, price_per_unit = ?, base_price_per_year = ?, previous_year_consumption = ?
       WHERE id = ?
     `, [
       meter_name,
@@ -217,7 +217,7 @@ app.put('/api/meters/:id', requireAuth, (req, res) => {
       zustandszahl || null,
       price_per_unit || null,
       base_price_per_year || null,
-      previous_year_value || null,
+      previous_year_consumption || null,
       req.params.id
     ]);
 
@@ -393,6 +393,16 @@ app.get('/api/projection/:meter_id', requireAuth, (req, res) => {
     }
   }
 
+  // Calculate year-over-year comparison if previous year consumption is set
+  let yearOverYearChange = null;
+  let yearOverYearPercentage = null;
+
+  if (meter.previous_year_consumption) {
+    const comparisonValue = (meter.meter_type === 'gas' && projectedYearlyKwh) ? projectedYearlyKwh : projectedYearlyConsumption;
+    yearOverYearChange = comparisonValue - meter.previous_year_consumption;
+    yearOverYearPercentage = ((yearOverYearChange / meter.previous_year_consumption) * 100).toFixed(1);
+  }
+
   res.json({
     success: true,
     meter_name: meter.meter_name,
@@ -400,6 +410,7 @@ app.get('/api/projection/:meter_id', requireAuth, (req, res) => {
     unit: meter.unit,
     price_per_unit: meter.price_per_unit,
     base_price_per_year: meter.base_price_per_year,
+    previous_year_consumption: meter.previous_year_consumption,
     brennwert: meter.brennwert,
     zustandszahl: meter.zustandszahl,
     conversion_factor: conversionFactor ? conversionFactor.toFixed(4) : null,
@@ -423,6 +434,8 @@ app.get('/api/projection/:meter_id', requireAuth, (req, res) => {
     projectedYearlyCost: projectedYearlyCost ? projectedYearlyCost.toFixed(2) : null,
     projectedYearlyTotal: projectedYearlyTotal ? projectedYearlyTotal.toFixed(2) : null,
     projectedEndValue: projectedEndValue.toFixed(2),
+    yearOverYearChange: yearOverYearChange ? yearOverYearChange.toFixed(2) : null,
+    yearOverYearPercentage: yearOverYearPercentage,
     readingCount: readings.length
   });
 });

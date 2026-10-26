@@ -39,7 +39,7 @@ initSQL().then(SQL => {
       zustandszahl REAL DEFAULT NULL,
       price_per_unit REAL DEFAULT NULL,
       base_price_per_year REAL DEFAULT NULL,
-      previous_year_value REAL DEFAULT NULL,
+      previous_year_consumption REAL DEFAULT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);

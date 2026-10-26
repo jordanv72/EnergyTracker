@@ -124,9 +124,9 @@
             </div>
 
             <div class="form-group">
-              <label for="previous_year_value">Previous Year End Value (optional)</label>
-              <input type="number" id="previous_year_value" name="previous_year_value" step="0.001" placeholder="e.g., 12345.678">
-              <small style="color: #666; font-size: 12px;">Meter reading at end of last year (Dec 31)</small>
+              <label for="previous_year_consumption">Previous Year Consumption (optional)</label>
+              <input type="number" id="previous_year_consumption" name="previous_year_consumption" step="0.001" placeholder="e.g., 2500.000">
+              <small style="color: #666; font-size: 12px;">Total consumption from previous year (for comparison)</small>
             </div>
 
             <button type="submit" class="btn btn-primary" id="meter-submit-btn">Add Meter</button>
@@ -320,9 +320,9 @@
       }
 
       // Add previous year value if provided
-      const previousYearValue = document.getElementById('previous_year_value').value;
+      const previousYearValue = document.getElementById('previous_year_consumption').value;
       if (previousYearValue) {
-        formData.previous_year_value = parseFloat(previousYearValue);
+        formData.previous_year_consumption = parseFloat(previousYearValue);
       }
 
       const url = meterId ? `/api/meters/${meterId}` : '/api/meters';
@@ -451,7 +451,7 @@
               document.getElementById('base_price_per_year').value = meter.base_price_per_year || '';
 
               // Populate previous year value
-              document.getElementById('previous_year_value').value = meter.previous_year_value || '';
+              document.getElementById('previous_year_consumption').value = meter.previous_year_consumption || '';
 
               // Update modal
               document.getElementById('meter-modal-title').textContent = 'Edit Meter';
@@ -551,6 +551,14 @@
                 ${isGas && !hasConversion ? `
                   <div class="conversion-info" style="background: #fff3cd; border-color: #ffc107; color: #856404;">
                     <strong>Note:</strong> Add Brennwert and Zustandszahl to your meter to see kWh conversion (found on your gas invoice)
+                  </div>
+                ` : ''}
+                ${data.previous_year_consumption && data.yearOverYearChange !== null ? `
+                  <div class="conversion-info" style="background: ${data.yearOverYearChange > 0 ? '#fff3cd' : '#d1ecf1'}; border-color: ${data.yearOverYearChange > 0 ? '#ffc107' : '#17a2b8'}; color: ${data.yearOverYearChange > 0 ? '#856404' : '#0c5460'};">
+                    <strong>Year-over-Year Comparison:</strong><br>
+                    Previous year: ${data.previous_year_consumption} ${hasConversion ? 'kWh' : unit}<br>
+                    This year (projected): ${hasConversion ? data.projectedYearlyKwh : data.projectedYearlyConsumption} ${hasConversion ? 'kWh' : unit}<br>
+                    Change: ${data.yearOverYearChange > 0 ? '+' : ''}${data.yearOverYearChange} ${hasConversion ? 'kWh' : unit} (${data.yearOverYearPercentage > 0 ? '+' : ''}${data.yearOverYearPercentage}%)
                   </div>
                 ` : ''}
                 <div class="projection-details">
