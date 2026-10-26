@@ -171,13 +171,13 @@ app.get('/api/meters', requireAuth, (req, res) => {
 });
 
 app.post('/api/meters', requireAuth, (req, res) => {
-  const { meter_type, meter_name, meter_number, brennwert, zustandszahl, price_per_unit, base_price_per_year } = req.body;
+  const { meter_type, meter_name, meter_number, brennwert, zustandszahl, price_per_unit, base_price_per_year, previous_year_value } = req.body;
   const unit = meter_type === 'electricity' ? 'kWh' : 'm³';
 
   try {
     dbRun(`
-      INSERT INTO meters (meter_type, meter_name, meter_number, unit, brennwert, zustandszahl, price_per_unit, base_price_per_year)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO meters (meter_type, meter_name, meter_number, unit, brennwert, zustandszahl, price_per_unit, base_price_per_year, previous_year_value)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       meter_type,
       meter_name,
@@ -186,7 +186,8 @@ app.post('/api/meters', requireAuth, (req, res) => {
       brennwert || null,
       zustandszahl || null,
       price_per_unit || null,
-      base_price_per_year || null
+      base_price_per_year || null,
+      previous_year_value || null
     ]);
     res.json({ success: true });
   } catch (error) {
@@ -195,7 +196,7 @@ app.post('/api/meters', requireAuth, (req, res) => {
 });
 
 app.put('/api/meters/:id', requireAuth, (req, res) => {
-  const { meter_name, meter_number, brennwert, zustandszahl, price_per_unit, base_price_per_year } = req.body;
+  const { meter_name, meter_number, brennwert, zustandszahl, price_per_unit, base_price_per_year, previous_year_value } = req.body;
 
   try {
     // Verify meter exists
@@ -207,11 +208,18 @@ app.put('/api/meters/:id', requireAuth, (req, res) => {
 
     dbRun(`
       UPDATE meters
-      SET meter_name = ?, meter_number = ?, brennwert = ?, zustandszahl = ?, price_per_unit = ?, base_price_per_year = ?
+      SET meter_name = ?, meter_number = ?, brennwert = ?, zustandszahl = ?, price_per_unit = ?, base_price_per_year = ?, previous_year_value = ?
       WHERE id = ?
     `, [
       meter_name,
       meter_number || '',
+      brennwert || null,
+      zustandszahl || null,
+      price_per_unit || null,
+      base_price_per_year || null,
+      previous_year_value || null,
+      req.params.id
+    ]);
       brennwert || null,
       zustandszahl || null,
       price_per_unit || null,
