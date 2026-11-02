@@ -40,7 +40,9 @@ initSQL().then(SQL => {
       price_per_unit REAL DEFAULT NULL,
       base_price_per_year REAL DEFAULT NULL,
       previous_year_consumption REAL DEFAULT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      replaces_meter_id INTEGER DEFAULT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (replaces_meter_id) REFERENCES meters(id) ON DELETE SET NULL
     )
   `);
 

@@ -129,6 +129,17 @@
               <small style="color: #666; font-size: 12px;">Total consumption from previous year (for comparison)</small>
             </div>
 
+            <div class="form-group">
+              <label for="replaces_meter_id">Replaces Meter (optional)</label>
+              <select id="replaces_meter_id" name="replaces_meter_id">
+                <option value="">-- None (new installation) --</option>
+                <% meters.forEach(m => { %>
+                  <option value="<%= m.id %>"><%= m.meter_name %><%= m.meter_number ? ' (' + m.meter_number + ')' : '' %></option>
+                <% }); %>
+              </select>
+              <small style="color: #666; font-size: 12px;">Select if this meter replaced an old one</small>
+            </div>
+
             <button type="submit" class="btn btn-primary" id="meter-submit-btn">Add Meter</button>
           </form>
         </div>
@@ -325,6 +336,12 @@
         formData.previous_year_consumption = parseFloat(previousYearValue);
       }
 
+      // Add replaces_meter_id if provided
+      const replacesMeterId = document.getElementById('replaces_meter_id').value;
+      if (replacesMeterId) {
+        formData.replaces_meter_id = parseInt(replacesMeterId);
+      }
+
       const url = meterId ? `/api/meters/${meterId}` : '/api/meters';
       const method = meterId ? 'PUT' : 'POST';
 
@@ -452,6 +469,9 @@
 
               // Populate previous year value
               document.getElementById('previous_year_consumption').value = meter.previous_year_consumption || '';
+
+              // Populate replaces meter
+              document.getElementById('replaces_meter_id').value = meter.replaces_meter_id || '';
 
               // Update modal
               document.getElementById('meter-modal-title').textContent = 'Edit Meter';

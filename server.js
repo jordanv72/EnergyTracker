@@ -171,13 +171,13 @@ app.get('/api/meters', requireAuth, (req, res) => {
 });
 
 app.post('/api/meters', requireAuth, (req, res) => {
-  const { meter_type, meter_name, meter_number, brennwert, zustandszahl, price_per_unit, base_price_per_year, previous_year_consumption } = req.body;
+  const { meter_type, meter_name, meter_number, brennwert, zustandszahl, price_per_unit, base_price_per_year, previous_year_consumption, replaces_meter_id } = req.body;
   const unit = meter_type === 'electricity' ? 'kWh' : 'm³';
 
   try {
     dbRun(`
-      INSERT INTO meters (meter_type, meter_name, meter_number, unit, brennwert, zustandszahl, price_per_unit, base_price_per_year, previous_year_consumption)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO meters (meter_type, meter_name, meter_number, unit, brennwert, zustandszahl, price_per_unit, base_price_per_year, previous_year_consumption, replaces_meter_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       meter_type,
       meter_name,
@@ -187,7 +187,8 @@ app.post('/api/meters', requireAuth, (req, res) => {
       zustandszahl || null,
       price_per_unit || null,
       base_price_per_year || null,
-      previous_year_consumption || null
+      previous_year_consumption || null,
+      replaces_meter_id || null
     ]);
     res.json({ success: true });
   } catch (error) {
@@ -196,7 +197,7 @@ app.post('/api/meters', requireAuth, (req, res) => {
 });
 
 app.put('/api/meters/:id', requireAuth, (req, res) => {
-  const { meter_name, meter_number, brennwert, zustandszahl, price_per_unit, base_price_per_year, previous_year_consumption } = req.body;
+  const { meter_name, meter_number, brennwert, zustandszahl, price_per_unit, base_price_per_year, previous_year_consumption, replaces_meter_id } = req.body;
 
   try {
     // Verify meter exists
@@ -208,7 +209,7 @@ app.put('/api/meters/:id', requireAuth, (req, res) => {
 
     dbRun(`
       UPDATE meters
-      SET meter_name = ?, meter_number = ?, brennwert = ?, zustandszahl = ?, price_per_unit = ?, base_price_per_year = ?, previous_year_consumption = ?
+      SET meter_name = ?, meter_number = ?, brennwert = ?, zustandszahl = ?, price_per_unit = ?, base_price_per_year = ?, previous_year_consumption = ?, replaces_meter_id = ?
       WHERE id = ?
     `, [
       meter_name,
@@ -218,6 +219,9 @@ app.put('/api/meters/:id', requireAuth, (req, res) => {
       price_per_unit || null,
       base_price_per_year || null,
       previous_year_consumption || null,
+      replaces_meter_id || null,
+      req.params.id
+    ]);
       req.params.id
     ]);
 
@@ -318,13 +322,24 @@ app.get('/api/projection/:meter_id', requireAuth, (req, res) => {
     return res.status(404).json({ success: false, error: 'Meter not found' });
   }
 
-  // Get readings for current year
+  // Build list of meter IDs to include (this meter + any it replaces)
+  const meterChain = [meter_id];
+  let currentMeterId = meter.replaces_meter_id;
+
+  while (currentMeterId) {
+    meterChain.push(currentMeterId);
+    const replacedMeter = dbGet('SELECT replaces_meter_id FROM meters WHERE id = ?', [currentMeterId]);
+    currentMeterId = replacedMeter ? replacedMeter.replaces_meter_id : null;
+  }
+
+  // Get readings for current year from all meters in the chain
+  const placeholders = meterChain.map(() => '?').join(',');
   const readings = dbAll(`
-    SELECT reading_value, reading_date
+    SELECT reading_value, reading_date, meter_id
     FROM meter_readings
-    WHERE meter_id = ? AND strftime('%Y', reading_date) = ?
+    WHERE meter_id IN (${placeholders}) AND strftime('%Y', reading_date) = ?
     ORDER BY reading_date ASC
-  `, [meter_id, currentYear.toString()]);
+  `, [...meterChain, currentYear.toString()]);
 
   if (readings.length < 2) {
     return res.json({
