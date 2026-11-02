@@ -346,6 +346,21 @@ app.get('/api/projection/:meter_id', requireAuth, (req, res) => {
     });
   }
 
+  // Calculate consumption per meter (to handle meter replacements correctly)
+  let totalConsumption = 0;
+  const meterConsumptions = {};
+
+  meterChain.forEach(meterId => {
+    const meterReadings = readings.filter(r => r.meter_id === meterId);
+    if (meterReadings.length >= 2) {
+      const firstReading = meterReadings[0];
+      const lastReading = meterReadings[meterReadings.length - 1];
+      const consumption = lastReading.reading_value - firstReading.reading_value;
+      meterConsumptions[meterId] = consumption;
+      totalConsumption += consumption;
+    }
+  });
+
   // Calculate consumption and projection
   const firstReading = readings[0];
   const lastReading = readings[readings.length - 1];
@@ -361,7 +376,7 @@ app.get('/api/projection/:meter_id', requireAuth, (req, res) => {
     });
   }
 
-  const consumption = lastReading.reading_value - firstReading.reading_value;
+  const consumption = totalConsumption;
   const dailyAverage = consumption / daysPassed;
 
   // Project to end of year
