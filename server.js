@@ -222,8 +222,6 @@ app.put('/api/meters/:id', requireAuth, (req, res) => {
       replaces_meter_id || null,
       req.params.id
     ]);
-      req.params.id
-    ]);
 
     res.json({ success: true });
   } catch (error) {
