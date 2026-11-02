@@ -321,7 +321,7 @@ app.get('/api/projection/:meter_id', requireAuth, (req, res) => {
   }
 
   // Build list of meter IDs to include (this meter + any it replaces)
-  const meterChain = [meter_id];
+  const meterChain = [parseInt(meter_id)];
   let currentMeterId = meter.replaces_meter_id;
 
   while (currentMeterId) {
