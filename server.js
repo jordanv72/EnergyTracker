@@ -275,12 +275,11 @@ app.get('/api/readings', requireAuth, (req, res) => {
     SELECT r.*, m.meter_name, m.meter_type, m.unit
     FROM meter_readings r
     JOIN meters m ON r.meter_id = m.id
-    WHERE m.user_id = ?
   `;
-  const params = [req.session.userId];
+  const params = [];
 
   if (meter_id) {
-    query += ' AND r.meter_id = ?';
+    query += ' WHERE r.meter_id = ?';
     params.push(meter_id);
   }
 
@@ -291,12 +290,8 @@ app.get('/api/readings', requireAuth, (req, res) => {
 
 app.delete('/api/readings/:id', requireAuth, (req, res) => {
   try {
-    // Check if reading belongs to user's meter
-    const reading = dbGet(`
-      SELECT r.* FROM meter_readings r
-      JOIN meters m ON r.meter_id = m.id
-      WHERE r.id = ? AND m.user_id = ?
-    `, [req.params.id, req.session.userId]);
+    // Check if reading exists
+    const reading = dbGet('SELECT * FROM meter_readings WHERE id = ?', [req.params.id]);
 
     if (!reading) {
       return res.status(404).json({ success: false, error: 'Reading not found' });
