@@ -535,7 +535,7 @@
                   <div class="stat">
                     <div class="stat-label">Consumption (${data.currentYear})</div>
                     ${hasConversion ? `
-                      <div class="stat-value">${data.consumption.toFixed(3)} ${unit} = ${data.consumptionKwh} kWh</div>
+                      <div class="stat-value">${data.consumption.toFixed(3)} ${unit} (${data.consumptionKwh} kWh)</div>
                     ` : `
                       <div class="stat-value">${data.consumption.toFixed(3)} ${unit}</div>
                     `}
@@ -554,7 +554,7 @@
                   <div class="stat highlight">
                     <div class="stat-label">Projected Yearly Total</div>
                     ${hasConversion ? `
-                      <div class="stat-value">${data.projectedYearlyConsumption} ${unit} = ${data.projectedYearlyKwh} kWh</div>
+                      <div class="stat-value">${data.projectedYearlyConsumption} ${unit} (${data.projectedYearlyKwh} kWh)</div>
                     ` : `
                       <div class="stat-value">${data.projectedYearlyConsumption} ${unit}</div>
                     `}
