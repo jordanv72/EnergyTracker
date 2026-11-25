@@ -587,7 +587,7 @@
                   <div class="conversion-info" style="background: ${data.yearOverYearChange > 0 ? '#fff3cd' : '#d1ecf1'}; border-color: ${data.yearOverYearChange > 0 ? '#ffc107' : '#17a2b8'}; color: ${data.yearOverYearChange > 0 ? '#856404' : '#0c5460'};">
                     <strong>Year-over-Year Comparison:</strong><br>
                     ${hasConversion ? `
-                      Previous year: ${data.previous_year_consumption} kWh<br>
+                      Previous year: ${data.previousYearM3} ${unit} (${data.previous_year_consumption} kWh)<br>
                       This year (projected): ${data.projectedYearlyConsumption} ${unit} (${data.projectedYearlyKwh} kWh)<br>
                       Change: ${data.yearOverYearChange > 0 ? '+' : ''}${data.yearOverYearChange} kWh (${data.yearOverYearPercentage > 0 ? '+' : ''}${data.yearOverYearPercentage}%)
                     ` : `

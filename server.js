@@ -419,11 +419,17 @@ app.get('/api/projection/:meter_id', requireAuth, (req, res) => {
   // Calculate year-over-year comparison if previous year consumption is set
   let yearOverYearChange = null;
   let yearOverYearPercentage = null;
+  let previousYearM3 = null;
 
   if (meter.previous_year_consumption) {
     const comparisonValue = (meter.meter_type === 'gas' && projectedYearlyKwh) ? projectedYearlyKwh : projectedYearlyConsumption;
     yearOverYearChange = comparisonValue - meter.previous_year_consumption;
     yearOverYearPercentage = ((yearOverYearChange / meter.previous_year_consumption) * 100).toFixed(1);
+
+    // For gas meters with conversion, calculate m³ from kWh
+    if (meter.meter_type === 'gas' && conversionFactor) {
+      previousYearM3 = (meter.previous_year_consumption / conversionFactor).toFixed(3);
+    }
   }
 
   res.json({
@@ -459,6 +465,7 @@ app.get('/api/projection/:meter_id', requireAuth, (req, res) => {
     projectedEndValue: projectedEndValue.toFixed(2),
     yearOverYearChange: yearOverYearChange ? yearOverYearChange.toFixed(2) : null,
     yearOverYearPercentage: yearOverYearPercentage,
+    previousYearM3: previousYearM3,
     readingCount: readings.length
   });
 });
