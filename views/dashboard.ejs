@@ -534,20 +534,30 @@
                 <div class="projection-stats">
                   <div class="stat">
                     <div class="stat-label">Consumption (${data.currentYear})</div>
-                    <div class="stat-value">${data.consumption.toFixed(3)} ${unit}</div>
-                    ${hasConversion ? `<div class="stat-sublabel">${data.consumptionKwh} kWh</div>` : ''}
+                    ${hasConversion ? `
+                      <div class="stat-value">${data.consumption.toFixed(3)} ${unit} = ${data.consumptionKwh} kWh</div>
+                    ` : `
+                      <div class="stat-value">${data.consumption.toFixed(3)} ${unit}</div>
+                    `}
                     ${data.consumptionCost ? `<div class="stat-sublabel">€${data.consumptionCost}</div>` : ''}
                     <div class="stat-sublabel">Based on ${data.readingCount} readings</div>
                   </div>
                   <div class="stat">
                     <div class="stat-label">Daily Average</div>
-                    <div class="stat-value">${data.dailyAverage} ${unit}/day</div>
-                    ${hasConversion ? `<div class="stat-sublabel">${data.dailyAverageKwh} kWh/day</div>` : ''}
+                    ${hasConversion ? `
+                      <div class="stat-value">${data.dailyAverage} ${unit}/day</div>
+                      <div class="stat-sublabel">${data.dailyAverageKwh} kWh/day</div>
+                    ` : `
+                      <div class="stat-value">${data.dailyAverage} ${unit}/day</div>
+                    `}
                   </div>
                   <div class="stat highlight">
                     <div class="stat-label">Projected Yearly Total</div>
-                    <div class="stat-value">${data.projectedYearlyConsumption} ${unit}</div>
-                    ${hasConversion ? `<div class="stat-sublabel">${data.projectedYearlyKwh} kWh</div>` : ''}
+                    ${hasConversion ? `
+                      <div class="stat-value">${data.projectedYearlyConsumption} ${unit} = ${data.projectedYearlyKwh} kWh</div>
+                    ` : `
+                      <div class="stat-value">${data.projectedYearlyConsumption} ${unit}</div>
+                    `}
                     ${data.projectedYearlyCost ? `<div class="stat-sublabel" style="font-weight: bold; color: #667eea;">€${data.projectedYearlyCost} (consumption)</div>` : ''}
                     ${data.projectedYearlyTotal ? `<div class="stat-sublabel" style="font-weight: bold; color: #dc3545;">€${data.projectedYearlyTotal} (total)</div>` : ''}
                   </div>
