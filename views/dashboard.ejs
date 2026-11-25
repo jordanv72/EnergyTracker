@@ -586,9 +586,15 @@
                 ${data.previous_year_consumption && data.yearOverYearChange !== null ? `
                   <div class="conversion-info" style="background: ${data.yearOverYearChange > 0 ? '#fff3cd' : '#d1ecf1'}; border-color: ${data.yearOverYearChange > 0 ? '#ffc107' : '#17a2b8'}; color: ${data.yearOverYearChange > 0 ? '#856404' : '#0c5460'};">
                     <strong>Year-over-Year Comparison:</strong><br>
-                    Previous year: ${data.previous_year_consumption} ${hasConversion ? 'kWh' : unit}<br>
-                    This year (projected): ${hasConversion ? data.projectedYearlyKwh : data.projectedYearlyConsumption} ${hasConversion ? 'kWh' : unit}<br>
-                    Change: ${data.yearOverYearChange > 0 ? '+' : ''}${data.yearOverYearChange} ${hasConversion ? 'kWh' : unit} (${data.yearOverYearPercentage > 0 ? '+' : ''}${data.yearOverYearPercentage}%)
+                    ${hasConversion ? `
+                      Previous year: ${data.previous_year_consumption} kWh<br>
+                      This year (projected): ${data.projectedYearlyConsumption} ${unit} (${data.projectedYearlyKwh} kWh)<br>
+                      Change: ${data.yearOverYearChange > 0 ? '+' : ''}${data.yearOverYearChange} kWh (${data.yearOverYearPercentage > 0 ? '+' : ''}${data.yearOverYearPercentage}%)
+                    ` : `
+                      Previous year: ${data.previous_year_consumption} ${unit}<br>
+                      This year (projected): ${data.projectedYearlyConsumption} ${unit}<br>
+                      Change: ${data.yearOverYearChange > 0 ? '+' : ''}${data.yearOverYearChange} ${unit} (${data.yearOverYearPercentage > 0 ? '+' : ''}${data.yearOverYearPercentage}%)
+                    `}
                   </div>
                 ` : ''}
                 <div class="projection-details">
